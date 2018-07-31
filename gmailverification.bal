@@ -43,7 +43,7 @@ endpoint http:Listener listener {
 service<http:Service> hello bind listener {
 
 
-    //Get label and shows unread messages
+    //Get label and verify the unread messages
     @http:ResourceConfig {
         methods: ["GET"],
         path: "/getlabel"
