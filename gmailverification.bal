@@ -33,7 +33,7 @@ endpoint gmail:Client gmailEP {
 };
 
 endpoint http:Listener listener {
-    port: 9095
+    port: 9090
 };
 
 @http:ServiceConfig {
