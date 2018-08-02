@@ -33,7 +33,7 @@ endpoint gmail:Client gmailEP {
 };
 
 endpoint http:Listener listener {
-    port: 9090
+    port: 9095
 };
 
 @http:ServiceConfig {
@@ -42,7 +42,8 @@ endpoint http:Listener listener {
 
 service<http:Service> hello bind listener {
 
-    //Get label and verify the unread messages
+
+    //Get label and shows unread messages
     @http:ResourceConfig {
         methods: ["GET"],
         path: "/getlabel"
@@ -62,6 +63,7 @@ service<http:Service> hello bind listener {
         int threadsUnread;
         string name;
 
+
         var response = gmailEP->getLabel(userId, labelId);
         match response {
             gmail:Label x => {
@@ -73,12 +75,15 @@ service<http:Service> hello bind listener {
                 response1.statusCode = 200;
                 response1.setTextPayload(untaint payload);
                 _ = caller->respond(response1);
+
             }
             gmail:GmailError e => {
+                
                 response1.statusCode = 404;
                 string payload = " Not Found";
                 response1.setJsonPayload(payload);
                 _ = caller->respond(response1);
+
             }
         }
     }
@@ -88,7 +93,6 @@ service<http:Service> hello bind listener {
         methods: ["POST"],
         path: "/createlabel"
     }
-    
     createmaillabel(endpoint caller, http:Request request)
     {
         http:Response response1;
@@ -110,6 +114,7 @@ service<http:Service> hello bind listener {
                 response1.setJsonPayload(payload);
                 _ = caller->respond(response1);
             }
+
             gmail:GmailError e => {
 
                 string payload = "Invalid value for parameters :  is not a valid values";
@@ -119,71 +124,39 @@ service<http:Service> hello bind listener {
         }
     }
 
-    @http:ResourceConfig {
-        methods: ["GET"],
-        path: "/readmessage"
-        }
-
-    readEmailMessage(endpoint caller, http:Request request) {
-        http:Request newRequest = new;
-        //Check whether 'sleeptime' header exisits in the invoking request
-        if (!request.hasHeader("messageid")) {
-            http:Response errorResponse = new;
-            //If not included 'sleeptime' in header print this as a error message
-            errorResponse.statusCode = 500;
-            json errMsg = { "error": "'messageid' header is not found" };
-            errorResponse.setPayload(errMsg);
-            caller->respond(errorResponse) but {
-                error e => log:printError("Error sending response", err = e)
-            };
-            done;
-        }
-
-        string nameString = request.getHeader("messageid");
-        string messageId = nameString;
-
-        var response = gmailEP->readMessage(userId, untaint messageId);
-        match response {
-            gmail:Message m => io:println("Received Message: ", m);
-            gmail:GmailError e => io:println(e);
-        }
-    }
-
     //List Messages
     @http:ResourceConfig {
         methods: ["GET"],
         path: "/listemailmessages"
     }
 
-    listEmailMessages(endpoint caller, http:Request request)
+
+    listEmailMessagesAndRead(endpoint caller, http:Request request)
     {
-        http:Response response1;
+        http:Response response;
+        //http:Response response;
         string messageId;
         string threadId;
-        
-        var response = gmailEP->listMessages(userId);
-        match response {
+
+        var response1 = gmailEP->listMessages(userId);
+        match response1 {
             gmail:MessageListPage x => {
-                io:println("Message: ", x);
-            }
 
-            gmail:GmailError e => {
-                io:println(e);
-            }
-        }
-    }
+                any firstmessageid = x.messages[0].messageId;
+                string stringVal = <string>firstmessageid;
 
-    @http:ResourceConfig {
-        methods: ["GET"],
-        path: "/userprofile"
-    }
+                var response2 = gmailEP->readMessage(userId, untaint stringVal);
+                match response2 {
+                    gmail:Message m =>
+                    {
+                        any emailmsg = m.snippet;
 
-    viewUserEmailProfile(endpoint caller, http:Request request) {
-
-        var response3 = gmailEP->getUserProfile(userId);        
-        match response3 {
-            gmail:UserProfile x => {
-                io:println("Message: ", x);
+                        string stringVal2 = <string>emailmsg;
+                        response.setTextPayload(untaint stringVal2);
+                        _ = caller->respond(response);
+                    }
+                    gmail:GmailError e => io:println(e);
+                }
             }
             gmail:GmailError e => {
                 io:println(e);
@@ -191,20 +164,7 @@ service<http:Service> hello bind listener {
         }
     }
 
-    @http:ResourceConfig {
-        methods: ["GET"],
-        path: "/listthread"
-    }
 
-    readt(endpoint caller, http:Request request)
-    {
-        var response3 = gmailEP->listThreads(userId);
-        match response3 {
-            gmail:ThreadListPage x =>
-            io:println("Message: ", x);
-            gmail:GmailError e => io:println(e);
-        }
-    }
 }
 
 
