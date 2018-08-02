@@ -63,7 +63,6 @@ service<http:Service> hello bind listener {
         int threadsUnread;
         string name;
 
-
         var response = gmailEP->getLabel(userId, labelId);
         match response {
             gmail:Label x => {
@@ -83,7 +82,6 @@ service<http:Service> hello bind listener {
                 string payload = " Not Found";
                 response1.setJsonPayload(payload);
                 _ = caller->respond(response1);
-
             }
         }
     }
@@ -129,7 +127,6 @@ service<http:Service> hello bind listener {
         methods: ["GET"],
         path: "/listemailmessages"
     }
-
 
     listEmailMessagesAndRead(endpoint caller, http:Request request)
     {
